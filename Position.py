@@ -20,7 +20,7 @@ def graph(data):
     # Add labels and legend
     plt.xlabel("Time")
     plt.ylabel("Position")
-    plt.title("X, Y, and Z positions over Time for Marvelmind Drone Querying with Position Averaging")
+    plt.title("X, Y, and Z positions over Time for Marvelmind Drone Querying")
     plt.legend()
     plt.show()
     
