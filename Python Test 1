@@ -1,0 +1,74 @@
+from marvelmind import MarvelmindHedge
+from time import time
+import sys
+import pandas as pd
+import matplotlib.pyplot as plt
+from scipy.signal import savgol_filter
+
+# Function to graph the collected data
+def graph(data):
+    x_vals = data["X"].to_numpy()
+    y_vals = data["Y"].to_numpy()
+    z_vals = data["Z"].to_numpy()
+    time_vals = data["Time"].to_numpy()
+
+    plt.plot(time_vals, x_vals, label="X values", marker='o')
+    plt.plot(time_vals, y_vals, label="Y values", marker='s')
+    plt.plot(time_vals, z_vals, label="Z values", marker='^')
+
+    plt.xlabel("Time")
+    plt.ylabel("Position")
+    plt.title("Smoothed X, Y, Z positions over Time")
+    plt.legend()
+    plt.show()
+
+def main():
+    hedge = MarvelmindHedge(tty="/dev/ttyACM0", adr=None, debug=False)
+
+    if len(sys.argv) > 1:
+        hedge.tty = sys.argv[1]
+
+    hedge.start()
+
+    hedge_pos = pd.DataFrame(columns=["X", "Y", "Z", "Time"])
+    initial_time = time()
+
+    while True:
+        try:
+            hedge.dataEvent.wait(1)
+            hedge.dataEvent.clear()
+
+            if hedge.positionUpdated:
+                x = hedge.position()[1]
+                y = hedge.position()[2]
+                z = hedge.position()[3]
+                t = time() - initial_time
+
+                new_row = pd.DataFrame({"X": [x], "Y": [y], "Z": [z], "Time": [t]})
+                hedge_pos = pd.concat([hedge_pos, new_row], ignore_index=True)
+
+                print(f"X: {x:.2f}, Y: {y:.2f}, Z: {z:.2f}, Time: {t:.2f}")
+
+        except KeyboardInterrupt:
+            hedge.stop()
+
+            # Apply Savitzky-Golay smoothing if enough data
+            window_length = min(15, len(hedge_pos))
+            if window_length % 2 == 0:
+                window_length -= 1
+            if window_length >= 3:
+                hedge_pos["X"] = savgol_filter(hedge_pos["X"], window_length, polyorder=2)
+                hedge_pos["Y"] = savgol_filter(hedge_pos["Y"], window_length, polyorder=2)
+                hedge_pos["Z"] = savgol_filter(hedge_pos["Z"], window_length, polyorder=2)
+
+            # Plot and print results
+            graph(hedge_pos)
+
+            print("\nMax Values After Smoothing:")
+            print("Max X:", hedge_pos["X"].max())
+            print("Max Y:", hedge_pos["Y"].max())
+            print("Max Z:", hedge_pos["Z"].max())
+
+            sys.exit()
+
+main()
