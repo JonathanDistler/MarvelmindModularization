@@ -41,8 +41,10 @@ def save_csv(arr):
 
 # Main function to interact with the Marvelmind Hedge and collect data
 def main():
-    hedge = MarvelmindHedge(tty="/dev/ttyACM0", adr=None, debug=False)  # Create MarvelmindHedge thread
-    
+    hedge = MarvelmindHedge(serial_port="COM8", adr=None, debug=False)  # Create MarvelmindHedge thread
+
+
+
     if len(sys.argv) > 1:
         hedge.tty = sys.argv[1]  # If a different tty is provided, use it
     
